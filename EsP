@@ -1,0 +1,165 @@
+--// Services  
+local Players = game:GetService("Players")  
+local RunService = game:GetService("RunService")  
+local TweenService = game:GetService("TweenService")  
+local LocalPlayer = Players.LocalPlayer  
+
+--// Config  
+local ESPEnabled = true  
+local TeamCheck = true  
+local Minimized = false  
+
+--// Interface  
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)  
+ScreenGui.Name = "ESP_UI"  
+
+local Frame = Instance.new("Frame", ScreenGui)  
+Frame.Size = UDim2.new(0, 200, 0, 100)  
+Frame.Position = UDim2.new(0, 50, 0, 50)  
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)  
+Frame.Active = true  
+Frame.Draggable = true  
+
+-- Borda arredondada  
+local UICorner = Instance.new("UICorner", Frame)  
+UICorner.CornerRadius = UDim.new(0, 12)  
+
+-- Título  
+local Title = Instance.new("TextLabel", Frame)  
+Title.Size = UDim2.new(1, 0, 0, 20)  
+Title.Text = "ESP Settings"  
+Title.BackgroundTransparency = 1  
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)  
+Title.Font = Enum.Font.SourceSansBold  
+Title.TextSize = 16  
+
+-- Botão Minimizar  
+local MinimizeButton = Instance.new("TextButton", Frame)  
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)  
+MinimizeButton.Position = UDim2.new(1, -25, 0, 0)  
+MinimizeButton.Text = "-"  
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)  
+MinimizeButton.Font = Enum.Font.SourceSansBold  
+MinimizeButton.TextSize = 16  
+
+local Corner = Instance.new("UICorner", MinimizeButton)  
+Corner.CornerRadius = UDim.new(0, 8)  
+
+-- Botões Configuração  
+local ESPButton = Instance.new("TextButton", Frame)  
+ESPButton.Size = UDim2.new(0.9, -10, 0, 30)  
+ESPButton.Position = UDim2.new(0.05, 0, 0.3, 0)  
+ESPButton.Text = "ESP: ON"  
+ESPButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  
+ESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)  
+
+local TeamButton = Instance.new("TextButton", Frame)  
+TeamButton.Size = UDim2.new(0.9, -10, 0, 30)  
+TeamButton.Position = UDim2.new(0.05, 0, 0.6, 0)  
+TeamButton.Text = "TeamCheck: ON"  
+TeamButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  
+TeamButton.TextColor3 = Color3.fromRGB(255, 255, 255)  
+
+-- Hover do botão minimizar  
+MinimizeButton.MouseEnter:Connect(function()
+    TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = Color3.fromRGB(0, 0, 0)
+    }):Play()
+end)
+
+MinimizeButton.MouseLeave:Connect(function()
+    TweenService:Create(MinimizeButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+        TextColor3 = Color3.fromRGB(255, 255, 255)
+    }):Play()
+end)
+
+-- Alternar ESP  
+ESPButton.MouseButton1Click:Connect(function()  
+    ESPEnabled = not ESPEnabled  
+    ESPButton.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")  
+end)  
+
+-- Alternar TeamCheck  
+TeamButton.MouseButton1Click:Connect(function()  
+    TeamCheck = not TeamCheck  
+    TeamButton.Text = "TeamCheck: " .. (TeamCheck and "ON" or "OFF")  
+end)  
+
+-- Função de fade suave  
+local function TweenSizeAndPosition(object, size, duration)
+    TweenService:Create(object, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = size}):Play()
+end
+
+-- Minimizar/Maximizar com fade  
+MinimizeButton.MouseButton1Click:Connect(function()  
+    Minimized = not Minimized  
+    if Minimized then  
+        TweenSizeAndPosition(Frame, UDim2.new(0, 50, 0, 50), 0.3)
+        TweenSizeAndPosition(MinimizeButton, UDim2.new(1, 0, 1, 0), 0.3)
+        MinimizeButton.TextSize = 28  
+        MinimizeButton.Text = "+"
+        Title.Visible = false  
+        ESPButton.Visible = false  
+        TeamButton.Visible = false  
+    else  
+        TweenSizeAndPosition(Frame, UDim2.new(0, 200, 0, 100), 0.3)
+        TweenSizeAndPosition(MinimizeButton, UDim2.new(0, 20, 0, 20), 0.3)
+        MinimizeButton.TextSize = 16  
+        MinimizeButton.Text = "-"  
+        Title.Visible = true  
+        ESPButton.Visible = true  
+        TeamButton.Visible = true  
+    end  
+end)  
+
+--// ESP Logic  
+local ESPObjects = {}  
+
+local function CreateESP(player)  
+    local Billboard = Instance.new("BillboardGui")  
+    Billboard.Name = "ESP"  
+    Billboard.Size = UDim2.new(0, 100, 0, 50)  
+    Billboard.AlwaysOnTop = true  
+    Billboard.Adornee = player.Character:WaitForChild("Head")  
+    Billboard.Parent = player.Character  
+
+    local NameLabel = Instance.new("TextLabel", Billboard)  
+    NameLabel.Size = UDim2.new(1, 0, 1, 0)  
+    NameLabel.Text = player.Name  
+    NameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)  
+    NameLabel.BackgroundTransparency = 1  
+    NameLabel.TextScaled = true  
+
+    ESPObjects[player] = Billboard  
+end  
+
+local function RemoveESP(player)  
+    if ESPObjects[player] then  
+        ESPObjects[player]:Destroy()  
+        ESPObjects[player] = nil  
+    end  
+end  
+
+-- Atualização do ESP  
+RunService.RenderStepped:Connect(function()  
+    for _, player in pairs(Players:GetPlayers()) do  
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then  
+            local sameTeam = (player.Team == LocalPlayer.Team)  
+            if ESPEnabled and (not TeamCheck or not sameTeam) then  
+                if not ESPObjects[player] then  
+                    CreateESP(player)  
+                end  
+            else  
+                RemoveESP(player)  
+            end  
+        else  
+            RemoveESP(player)  
+        end  
+    end  
+end)  
+
+-- Remover ESP ao sair  
+Players.PlayerRemoving:Connect(RemoveESP)
